@@ -6,14 +6,14 @@ class TestData(models.Model):
     email = models.EmailField(null=True)
 
     def __str__(self):
-        return f"{self.firstname}_{self.lastname}"
+        return f"{self.firstname} {self.lastname}"
 
 
 
-# class PriceData(models.Model):
-#     location = models.CharField(max_length=200)
-#     year = models.IntegerField()
-#     price = models.FloatField()
+class PriceData(models.Model):
+    location = models.CharField(max_length=200)
+    year = models.IntegerField()
+    price = models.FloatField()
 
-#     def __str__(self):
-#         return f"{self.location} - {self.year} - {self.price}"
+    def __str__(self):
+        return f"{self.location} - {self.year} - {self.price}"

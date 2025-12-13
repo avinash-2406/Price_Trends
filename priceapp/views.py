@@ -1,9 +1,9 @@
 import pandas as pd
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import TestData
+from .models import TestData,PriceData
 
-api_view(["POST"])
+@api_view(["POST"])
 def testentry(request):
     firstname = request.data.get("firstname")
     lastname = request.data.get("lastname")
@@ -27,38 +27,38 @@ def testentry(request):
 
 # 1) UPLOAD EXCEL — bulk_create
 
-# @api_view(["POST"])
-# def upload_excel(request):
-#     file = request.FILES.get("file")
+@api_view(["POST"])
+def upload_excel(request):
+    file = request.FILES.get("file")
 
-#     if not file:
-#         return Response({"error": "Excel file is required"}, status=400)
+    if not file:
+        return Response({"error": "Excel file is required"}, status=400)
 
-#     try:
-#         # Read Excel file
-#         df = pd.read_excel(file)
+    try:
+        # Read Excel file
+        df = pd.read_excel(file)
 
-#         # Keep only needed columns
-#         df = df[["Location", "Year", "Price"]]
+        # Keep only needed columns
+        df = df[["Location", "Year", "Price"]]
 
-#         # Convert rows to objects
-#         objects = [
-#             PriceData(
-#                 location=row["Location"],
-#                 year=int(row["Year"]),
-#                 price=float(row["Price"])
-#             )
-#             for _, row in df.iterrows()
-#         ]
+        # Convert rows to objects
+        objects = [
+            PriceData(
+                location=row["Location"],
+                year=int(row["Year"]),
+                price=float(row["Price"])
+            )
+            for _, row in df.iterrows()
+        ]
 
-#         # Bulk insert
-#         PriceData.objects.bulk_create(objects, ignore_conflicts=True)
+        # Bulk insert
+        PriceData.objects.bulk_create(objects, ignore_conflicts=True)
 
-#         return Response({
-#             "message": "Data uploaded successfully",
-#             "rows_uploaded": len(objects)
-#         })
+        return Response({
+            "message": "Data uploaded successfully",
+            "rows_uploaded": len(objects)
+        })
 
-#     except Exception as e:
-#         return Response({"error": str(e)}, status=500)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
 

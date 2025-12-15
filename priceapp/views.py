@@ -39,26 +39,99 @@ def upload_excel(request):
         df = pd.read_excel(file)
 
         # Keep only needed columns
-        df = df[["Location", "Year", "Price"]]
+        # df = df[["Final Location", "Year", "Price"]]
 
         # Convert rows to objects
-        objects = [
-            PriceData(
-                location=row["Location"],
-                year=int(row["Year"]),
-                price=float(row["Price"])
+        objects = []
+
+        for _, row in df.iterrows():
+            obj = PriceData(
+                final_location=row["final location"],
+                year=int(row["year"]),
+                city=row["city"],
+
+                flat_weighted_avg=row["flat - weighted average rate"],
+                office_weighted_avg=row["office - weighted average rate"],
+                others_weighted_avg=row["others - weighted average rate"],
+                shop_weighted_avg=row["shop - weighted average rate"],
+
+                flat_50=row["flat - 50th percentile rate"],
+                office_50=row["office - 50th percentile rate"],
+                others_50=row["others - 50th percentile rate"],
+                shop_50=row["shop - 50th percentile rate"],
+
+                flat_75=row["flat - 75th percentile rate"],
+                office_75=row["office - 75th percentile rate"],
+                others_75=row["others - 75th percentile rate"],
+                shop_75=row["shop - 75th percentile rate"],
+
+                flat_90=row["flat - 90th percentile rate"],
+                office_90=row["office - 90th percentile rate"],
+                others_90=row["others - 90th percentile rate"],
+                shop_90=row["shop - 90th percentile rate"],
             )
-            for _, row in df.iterrows()
-        ]
+            objects.append(obj)
+        
 
         # Bulk insert
         PriceData.objects.bulk_create(objects, ignore_conflicts=True)
 
         return Response({
             "message": "Data uploaded successfully",
-            "rows_uploaded": len(objects)
+            "rows_uploaded": len(objects),
+            
         })
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+@api_view(["GET"])
+def price_trend(request):
 
+    location = request.GET.get("final_location")
+    property_type = request.GET.get("property_type", "flat")  # default flat
+
+    if not location:
+        return Response({"error": "final_location is required"}, status=400)
+    
+     # 🔐 Allowed property types (SECURITY)
+    PROPERTY_FIELD_MAP = {
+        "flat": "flat_weighted_avg",
+        "shop": "shop_weighted_avg",
+        "office": "office_weighted_avg",
+        "others": "others_weighted_avg",
+    }
+
+    if property_type not in PROPERTY_FIELD_MAP:
+        return Response(
+            {"error": "Invalid property_type"},
+            status=400
+        )
+    price_field = PROPERTY_FIELD_MAP[property_type]
+
+    qs = PriceData.objects.filter(
+        final_location__iexact=location
+    ).order_by("year")
+
+    if not qs.exists():
+        return Response({"error": "No data found"}, status=404)
+
+    result = []
+    prev_price = None
+
+    for obj in qs:
+        price = getattr(obj, price_field)  # 🔥 dynamic field access
+
+        yoy = None
+        if prev_price not in (None, 0):
+            yoy = round(((price - prev_price) / prev_price) * 100, 2)
+
+        result.append({
+            "year": obj.year,
+            "price": price,
+            "yoy": yoy,
+            "property_type": property_type
+        })
+
+        prev_price = price
+
+    return Response(result, status=200)

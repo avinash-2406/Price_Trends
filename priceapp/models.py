@@ -11,9 +11,30 @@ class TestData(models.Model):
 
 
 class PriceData(models.Model):
-    location = models.CharField(max_length=200)
+    final_location = models.CharField(max_length=200)
     year = models.IntegerField()
-    price = models.FloatField()
+    city = models.CharField(max_length=100)
+
+    flat_weighted_avg = models.FloatField(null=True, blank=True)
+    office_weighted_avg = models.FloatField(null=True, blank=True)
+    others_weighted_avg = models.FloatField(null=True, blank=True)
+    shop_weighted_avg = models.FloatField(null=True, blank=True)
+
+    flat_50 = models.FloatField(null=True, blank=True)
+    office_50 = models.FloatField(null=True, blank=True)
+    others_50 = models.FloatField(null=True, blank=True)
+    shop_50 = models.FloatField(null=True, blank=True)
+
+    flat_75 = models.FloatField(null=True, blank=True)
+    office_75 = models.FloatField(null=True, blank=True)
+    others_75 = models.FloatField(null=True, blank=True)
+    shop_75 = models.FloatField(null=True, blank=True)
+
+    flat_90 = models.FloatField(null=True, blank=True)
+    office_90 = models.FloatField(null=True, blank=True)
+    others_90 = models.FloatField(null=True, blank=True)
+    shop_90 = models.FloatField(null=True, blank=True)
+
 
     def __str__(self):
-        return f"{self.location} - {self.year} - {self.price}"
+        return f"{self.final_location} - {self.year} - {self.price}"

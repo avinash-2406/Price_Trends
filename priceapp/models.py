@@ -37,4 +37,4 @@ class PriceData(models.Model):
 
 
     def __str__(self):
-        return f"{self.final_location} - {self.year} - {self.price}"
+        return f"{self.final_location} - {self.year}"

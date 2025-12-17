@@ -84,33 +84,68 @@ def upload_excel(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+    
+    
 @api_view(["GET"])
 def price_trend(request):
 
     location = request.GET.get("final_location")
+    price_metric = request.GET.get("price_metric", "weighted")
     property_type = request.GET.get("property_type", "flat")  # default flat
-
+    year = request.GET.get("year")  # 👈 NEW (optional)
+    
     if not location:
         return Response({"error": "final_location is required"}, status=400)
     
      # 🔐 Allowed property types (SECURITY)
-    PROPERTY_FIELD_MAP = {
-        "flat": "flat_weighted_avg",
-        "shop": "shop_weighted_avg",
-        "office": "office_weighted_avg",
-        "others": "others_weighted_avg",
-    }
+    PRICE_FIELD_MAP = {
+            "weighted": {
+                "flat": "flat_weighted_avg",
+                "office": "office_weighted_avg",
+                "shop": "shop_weighted_avg",
+                "others": "others_weighted_avg",
+            },
+            "p50": {
+                "flat": "flat_50",
+                "office": "office_50",
+                "shop": "shop_50",
+                "others": "others_50",
+            },
+            "p75": {
+                "flat": "flat_75",
+                "office": "office_75",
+                "shop": "shop_75",
+                "others": "others_75",
+            },
+            "p90": {
+                "flat": "flat_90",
+                "office": "office_90",
+                "shop": "shop_90",
+                "others": "others_90",
+            }
+        }
 
-    if property_type not in PROPERTY_FIELD_MAP:
-        return Response(
-            {"error": "Invalid property_type"},
-            status=400
-        )
-    price_field = PROPERTY_FIELD_MAP[property_type]
+    
+    # ✅ Validate price_metric
+    if price_metric not in PRICE_FIELD_MAP:
+        return Response({"error": "Invalid price_metric"}, status=400)
+    
+    # ✅ Validate property_type
+    if property_type not in PRICE_FIELD_MAP[price_metric]:
+        return Response({"error": "Invalid property_type"}, status=400)
+    
+    price_field = PRICE_FIELD_MAP[price_metric][property_type]
 
     qs = PriceData.objects.filter(
         final_location__iexact=location
-    ).order_by("year")
+    )
+
+    
+    # 👇 OPTIONAL year filter
+    if year:
+        qs = qs.filter(year=year)
+
+    qs = qs.order_by("year")
 
     if not qs.exists():
         return Response({"error": "No data found"}, status=404)
@@ -122,16 +157,37 @@ def price_trend(request):
         price = getattr(obj, price_field)  # 🔥 dynamic field access
 
         yoy = None
-        if prev_price not in (None, 0):
+        if price is not None and prev_price not in (None, 0):
             yoy = round(((price - prev_price) / prev_price) * 100, 2)
 
         result.append({
             "year": obj.year,
             "price": price,
             "yoy": yoy,
-            "property_type": property_type
+            "property_type": property_type,
+            "price_metric": price_metric,
         })
 
         prev_price = price
 
     return Response(result, status=200)
+
+
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import PriceData
+
+
+@api_view(["GET"])
+def getall_locations(request):
+    locations = (
+        PriceData.objects
+        .values_list("final_location", flat=True)
+        .distinct()
+        .order_by("final_location")
+    )
+
+    return Response(locations, status=200)
+
+
+    

@@ -38,3 +38,10 @@ class PriceData(models.Model):
 
     def __str__(self):
         return f"{self.final_location} - {self.year}"
+    class Meta:
+            constraints = [
+                models.UniqueConstraint(
+                    fields=["final_location", "year", "city"],
+                    name="unique_location_year_city"
+                )
+            ]

@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import TestData,PriceData
@@ -38,6 +39,14 @@ def upload_excel(request):
         # Read Excel file
         df = pd.read_excel(file)
 
+        # df = df.where(pd.notna(df), None)
+        # Replace everything invalid with None
+        df.replace(
+            to_replace=[np.nan, "NA", "N/A", "na", "null", "--", ""],
+            value=None,
+            inplace=True
+        )
+
         # Keep only needed columns
         # df = df[["Final Location", "Year", "Price"]]
 
@@ -73,8 +82,28 @@ def upload_excel(request):
             objects.append(obj)
         
 
-        # Bulk insert
-        PriceData.objects.bulk_create(objects, ignore_conflicts=True)
+        # Bulk insert with update on conflict
+        PriceData.objects.bulk_create(objects, update_conflicts=True,
+            unique_fields=["final_location", "year", "city"],
+            update_fields=[
+                "flat_weighted_avg",
+                "office_weighted_avg",
+                "others_weighted_avg",
+                "shop_weighted_avg",
+                "flat_50",
+                "office_50",
+                "others_50",
+                "shop_50",
+                "flat_75",
+                "office_75",
+                "others_75",
+                "shop_75",
+                "flat_90",
+                "office_90",
+                "others_90",
+                "shop_90",]
+                ,batch_size=1000
+            )
 
         return Response({
             "message": "Data uploaded successfully",
